@@ -1,0 +1,135 @@
+import '../utils/categories.dart';
+
+class Recording {
+  final String id;
+  final String filePath;
+  final DateTime startedAt;
+  final int durationMs;
+  final double peakDb;
+  final double avgDb;
+  final SoundCategory category;
+  final String categoryLabel;
+  final double categoryConfidence;
+  final List<SoundCategory> tags;
+  final List<double> waveform;
+  final List<SoundCategory> windowCategories;
+  final List<SoundCategory> windowCategoriesSecondary;
+
+  const Recording({
+    required this.id,
+    required this.filePath,
+    required this.startedAt,
+    required this.durationMs,
+    required this.peakDb,
+    required this.avgDb,
+    required this.category,
+    required this.categoryLabel,
+    required this.categoryConfidence,
+    this.tags = const [],
+    required this.waveform,
+    this.windowCategories = const [],
+    this.windowCategoriesSecondary = const [],
+  });
+
+  Recording copyWith({
+    SoundCategory? category,
+    String? categoryLabel,
+    double? categoryConfidence,
+    List<SoundCategory>? tags,
+    List<SoundCategory>? windowCategories,
+    List<SoundCategory>? windowCategoriesSecondary,
+  }) => Recording(
+    id: id,
+    filePath: filePath,
+    startedAt: startedAt,
+    durationMs: durationMs,
+    peakDb: peakDb,
+    avgDb: avgDb,
+    category: category ?? this.category,
+    categoryLabel: categoryLabel ?? this.categoryLabel,
+    categoryConfidence: categoryConfidence ?? this.categoryConfidence,
+    tags: tags ?? this.tags,
+    waveform: waveform,
+    windowCategories: windowCategories ?? this.windowCategories,
+    windowCategoriesSecondary:
+        windowCategoriesSecondary ?? this.windowCategoriesSecondary,
+  );
+
+  /// The "night" key for grouping. Sounds between noon and midnight are
+  /// assigned to that day; sounds after midnight until noon go back to the
+  /// previous day. That way one sleep session is a single night.
+  DateTime get nightKey {
+    final d = startedAt;
+    if (d.hour < 12) {
+      final prev = DateTime(
+        d.year,
+        d.month,
+        d.day,
+      ).subtract(const Duration(days: 1));
+      return prev;
+    }
+    return DateTime(d.year, d.month, d.day);
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'filePath': filePath,
+    'startedAt': startedAt.toIso8601String(),
+    'durationMs': durationMs,
+    'peakDb': peakDb,
+    'avgDb': avgDb,
+    'category': category.name,
+    'categoryLabel': categoryLabel,
+    'categoryConfidence': categoryConfidence,
+    'tags': tags.map((t) => t.name).toList(),
+    'waveform': waveform,
+    'windowCategories': windowCategories.map((c) => c.name).toList(),
+    'windowCategoriesSecondary': windowCategoriesSecondary
+        .map((c) => c.name)
+        .toList(),
+  };
+
+  factory Recording.fromJson(Map<String, dynamic> j) => Recording(
+    id: j['id'] as String,
+    filePath: j['filePath'] as String,
+    startedAt: DateTime.parse(j['startedAt'] as String),
+    durationMs: j['durationMs'] as int,
+    peakDb: (j['peakDb'] as num?)?.toDouble() ?? 0,
+    avgDb: (j['avgDb'] as num?)?.toDouble() ?? 0,
+    category: SoundCategory.values.firstWhere(
+      (c) => c.name == j['category'],
+      orElse: () => SoundCategory.unknown,
+    ),
+    categoryLabel: j['categoryLabel'] as String? ?? 'Other',
+    categoryConfidence: (j['categoryConfidence'] as num?)?.toDouble() ?? 0,
+    tags: ((j['tags'] as List?) ?? const [])
+        .map(
+          (e) => SoundCategory.values.firstWhere(
+            (c) => c.name == e,
+            orElse: () => SoundCategory.unknown,
+          ),
+        )
+        .where((c) => c != SoundCategory.unknown)
+        .toList(),
+    waveform: ((j['waveform'] as List?) ?? [])
+        .map((e) => (e as num).toDouble())
+        .toList(),
+    windowCategories: ((j['windowCategories'] as List?) ?? const [])
+        .map(
+          (e) => SoundCategory.values.firstWhere(
+            (c) => c.name == e,
+            orElse: () => SoundCategory.unknown,
+          ),
+        )
+        .toList(),
+    windowCategoriesSecondary:
+        ((j['windowCategoriesSecondary'] as List?) ?? const [])
+            .map(
+              (e) => SoundCategory.values.firstWhere(
+                (c) => c.name == e,
+                orElse: () => SoundCategory.unknown,
+              ),
+            )
+            .toList(),
+  );
+}
